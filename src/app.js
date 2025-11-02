@@ -1,7 +1,9 @@
 const express = require("express");
 const cors = require("cors");
 const app = express();
+const http = require("http");
 app.use(express.json());
+const socket = require("socket.io");
 const connectDB = require("./config/database.js");
 const User = require("./models/user.js");
 const { validateSignupData } = require("./utils/validation.js");
@@ -13,7 +15,7 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(
   cors({
-    origin: "http://localhost:5173", // your React frontend port
+    origin: "http://localhost:5174", // your React frontend port
     credentials: true
   })
 );
@@ -22,11 +24,14 @@ const authRouter = require("./routes/auth.js");
 const profileRouter = require("./routes/profile.js");
 const requestRouter = require("./routes/request.js");
 const userRouter = require("./routes/user.js");
+const initializeSocket = require("./utils/socket.js");
+const chatRouter = require("./routes/chat.js");
 
 app.use("/", authRouter);
 app.use("/", profileRouter);
 app.use("/", requestRouter);
 app.use("/", userRouter);
+app.use("/", chatRouter);
 
 app.patch("/user", async (req, res) => {
   const userId = req.body.userId;
@@ -51,12 +56,13 @@ app.patch("/user", async (req, res) => {
     res.status(400).send("Update Failed:" + err.message);
   }
 });
-
+const server = http.createServer(app);
+initializeSocket(server);
 connectDB()
   .then(() => {
     console.log("Database connection established...");
 
-    app.listen(3000, () => {
+    server.listen(3000, () => {
       console.log("Server is listening on port 3000");
     });
   })
